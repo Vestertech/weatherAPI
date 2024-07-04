@@ -1,5 +1,3 @@
-// server.js
-
 const express = require("express");
 const axios = require("axios");
 const app = express();
@@ -14,17 +12,17 @@ app.get("/api/hello", async (req, res) => {
   const visitorName = req.query.visitor_name || "Visitor";
 
   // Retrieve IP from headers
-  const clientIp = // = "8.8.8.8"; // Using a public IP address for testing purposes
-    req.headers["x-forwarded-for"] ||
-    req.headers["x-real-ip"] ||
-    req.connection.remoteAddress;
+  let clientIp =
+    req.headers["x-forwarded-for"] || req.headers["x-real-ip"] || req.ip;
+  // Check for local development and replace with a public IP for testing
+  if (clientIp === "::1" || clientIp === "127.0.0.1") {
+    clientIp = "8.8.8.8"; // Replace with a public IP address for testing
+  }
+
   console.log("Client IP:", clientIp);
 
   const openWeatherMapApiKey = process.env.OPENWEATHERMAP_API_KEY;
   const ipinfoToken = process.env.IPINFO_TOKEN;
-
-  console.log("OpenWeatherMap API Key:", openWeatherMapApiKey);
-  console.log("IPInfo Token:", ipinfoToken);
 
   if (!openWeatherMapApiKey || !ipinfoToken) {
     return res.status(500).json({ error: "API keys not configured" });
@@ -32,6 +30,7 @@ app.get("/api/hello", async (req, res) => {
 
   try {
     let location = "Unknown";
+    let locationErrorOccurred = false;
 
     if (clientIp) {
       try {
@@ -41,18 +40,18 @@ app.get("/api/hello", async (req, res) => {
         location = locationResponse.data.city || "Unknown";
         console.log("Location:", location);
       } catch (locationError) {
+        locationErrorOccurred = true;
         console.error("Error getting location:", locationError.message);
       }
     }
 
     let temperature = "Unknown";
-    if (location !== "Unknown") {
+    if (!locationErrorOccurred && location !== "Unknown") {
       try {
         const weatherResponse = await axios.get(
           `http://api.openweathermap.org/data/2.5/weather?q=${location}&units=metric&appid=${openWeatherMapApiKey}`
         );
         temperature = weatherResponse.data.main.temp;
-
         console.log("Temperature:", temperature);
       } catch (weatherError) {
         console.error("Error getting weather:", weatherError.message);
@@ -62,11 +61,7 @@ app.get("/api/hello", async (req, res) => {
     res.json({
       client_ip: clientIp,
       location: location,
-      greeting: `Hello, ${visitorName}! ${
-        temperature !== "Unknown"
-          ? `The temperature is ${temperature} degrees Celsius in ${location}.`
-          : `Weather information is not available for ${location}.`
-      }`,
+      greeting: `Hello, ${visitorName}!, the temperature is ${temperature} degrees Celsius in ${location}`,
     });
 
     console.log("Request processed successfully.");
