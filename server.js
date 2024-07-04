@@ -14,10 +14,10 @@ app.get("/api/hello", async (req, res) => {
   const visitorName = req.query.visitor_name || "Visitor";
 
   // Retrieve IP from headers
-  const clientIp = "8.8.8.8"; // Using a public IP address for testing purposes
-  // req.headers["x-forwarded-for"] ||
-  // req.headers["x-real-ip"] ||
-  // req.connection.remoteAddress;
+  const clientIp = // = "8.8.8.8"; // Using a public IP address for testing purposes
+    req.headers["x-forwarded-for"] ||
+    req.headers["x-real-ip"] ||
+    req.connection.remoteAddress;
   console.log("Client IP:", clientIp);
 
   const openWeatherMapApiKey = process.env.OPENWEATHERMAP_API_KEY;
